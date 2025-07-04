@@ -5,6 +5,5 @@
       "src": "ecommerce_project/package.json",
       "use": "@vercel/next"
     }
-  ],
-  "rootDirectory": "ecommerce_project"
+  ]
 }
