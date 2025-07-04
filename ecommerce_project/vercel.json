@@ -2,8 +2,9 @@
   "version": 2,
   "builds": [
     {
-      "src": "package.json",
+      "src": "ecommerce_project/package.json",
       "use": "@vercel/next"
     }
-  ]
+  ],
+  "rootDirectory": "ecommerce_project"
 }
