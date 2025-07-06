@@ -16,17 +16,27 @@ const serviceAccount = {
   client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
 };
 
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+// Initialize Firebase Admin SDK only if credentials are available
+let db = null;
+if (process.env.FIREBASE_PROJECT_ID && !admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    db = getFirestore();
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+  }
 }
 
-// Initialize Firestore
-const db = getFirestore();
-
 export async function GET(request) {
+  if (!db) {
+    return NextResponse.json(
+      { error: "Firebase not configured" },
+      { status: 500 }
+    );
+  }
+  
   const authHeader = request.headers.get("authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -91,6 +101,13 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  if (!db) {
+    return NextResponse.json(
+      { error: "Firebase not configured" },
+      { status: 500 }
+    );
+  }
+  
   const authHeader = request.headers.get("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
