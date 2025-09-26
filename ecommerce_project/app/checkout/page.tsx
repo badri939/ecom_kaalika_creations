@@ -28,8 +28,11 @@ export default withAuth(function CheckoutPage() {
       }
 
       const token = await user.getIdToken();
+      // You may need to get paymentId from your payment integration
+      const customerEmail = user.email;
+      const paymentId = ""; // Replace with actual paymentId if available
 
-      const response = await fetch("http://localhost:4000/api/checkout", {
+      const response = await fetch("/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -41,11 +44,18 @@ export default withAuth(function CheckoutPage() {
           name,
           address,
           paymentMethod,
+          customerEmail,
+          paymentId,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to place order.");
+        let errorMsg = "Failed to place order.";
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -61,9 +71,9 @@ export default withAuth(function CheckoutPage() {
           <p><strong>Total: ₹${totalCost}</strong></p>
         `;
         // Only send invoice if user email exists
-        if (user.email) {
+        if (customerEmail) {
           await sendInvoice({
-            recipient: user.email,
+            recipient: customerEmail,
             subject: `Your Invoice for Order #${data.orderId || "N/A"}`,
             html: invoiceHtml,
           });
@@ -76,8 +86,9 @@ export default withAuth(function CheckoutPage() {
         throw new Error("No redirect URL returned.");
       }
     } catch (error) {
-      console.error("Error placing order:", error);
-      alert("Failed to place order. Please try again.");
+  console.error("Error placing order:", error);
+  const errMsg = (error instanceof Error ? error.message : "Failed to place order. Please try again.");
+  alert(errMsg);
     } finally {
       setIsSubmitting(false);
     }
