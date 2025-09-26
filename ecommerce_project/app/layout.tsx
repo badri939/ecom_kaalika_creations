@@ -81,11 +81,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <header className="flex justify-between items-center p-4 bg-yellow-300">
               <h1 className="text-2xl font-bold">E-Commerce</h1>
               <nav className="flex items-center gap-4 relative z-50">
-                <div className="relative group">
-                  <button className="bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-700">
+                <div className="relative group" tabIndex={0}>
+                  <button className="bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-700 focus:outline-none">
                     Account
                   </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg hidden group-hover:block z-50">
+                  <div
+                    className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+                  >
                     <LogoutButton />
                   </div>
                 </div>

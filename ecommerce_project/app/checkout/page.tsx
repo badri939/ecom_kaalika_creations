@@ -1,6 +1,7 @@
 "use client";
 
 import { useCart } from "@/context/CardContext";
+import { sendInvoice } from "@/utils/sendInvoice";
 import { useState } from "react";
 import { withAuth } from "@/context/AuthContext";
 import { auth } from "@/firebaseConfig";
@@ -10,6 +11,9 @@ export default withAuth(function CheckoutPage() {
   const { cart, clearCart } = useCart();
   const totalCost = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("credit-card");
   const router = useRouter();
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -24,6 +28,9 @@ export default withAuth(function CheckoutPage() {
       }
 
       const token = await user.getIdToken();
+      // You may need to get paymentId from your payment integration
+      const customerEmail = user.email;
+      const paymentId = ""; // Replace with actual paymentId if available
 
       const response = await fetch("/api/checkout", {
         method: "POST",
@@ -34,23 +41,54 @@ export default withAuth(function CheckoutPage() {
         body: JSON.stringify({
           cart,
           totalCost,
+          name,
+          address,
+          paymentMethod,
+          customerEmail,
+          paymentId,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to place order.");
+        let errorMsg = "Failed to place order.";
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
       if (data?.redirectUrl) {
+        // Generate a simple invoice HTML
+        const invoiceHtml = `
+          <h2>Thank you for your purchase!</h2>
+          <p>Order ID: ${data.orderId || "N/A"}</p>
+          <h3>Order Summary</h3>
+          <ul>
+            ${cart.map(item => `<li>${item.name} (x${item.quantity}): ₹${item.price * item.quantity}</li>`).join("")}
+          </ul>
+          <p><strong>Total: ₹${totalCost}</strong></p>
+        `;
+        // Only send invoice if user email exists
+        if (customerEmail) {
+          await sendInvoice({
+            recipient: customerEmail,
+            subject: `Your Invoice for Order #${data.orderId || "N/A"}`,
+            html: invoiceHtml,
+          });
+        } else {
+          console.warn("No user email found, invoice not sent.");
+        }
         clearCart();
         router.push(data.redirectUrl);
       } else {
         throw new Error("No redirect URL returned.");
       }
     } catch (error) {
-      console.error("Error placing order:", error);
-      alert("Failed to place order. Please try again.");
+  console.error("Error placing order:", error);
+  const errMsg = (error instanceof Error ? error.message : "Failed to place order. Please try again.");
+  alert(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -83,6 +121,8 @@ export default withAuth(function CheckoutPage() {
           <input
             type="text"
             required
+            value={name}
+            onChange={e => setName(e.target.value)}
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 text-base"
           />
         </div>
@@ -90,6 +130,8 @@ export default withAuth(function CheckoutPage() {
           <label className="block text-base font-medium text-gray-900">Address</label>
           <textarea
             required
+            value={address}
+            onChange={e => setAddress(e.target.value)}
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 text-base"
           ></textarea>
         </div>
@@ -97,6 +139,8 @@ export default withAuth(function CheckoutPage() {
           <label className="block text-base font-medium text-gray-900">Payment Method</label>
           <select
             required
+            value={paymentMethod}
+            onChange={e => setPaymentMethod(e.target.value)}
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 text-base"
           >
             <option value="credit-card">Credit Card</option>

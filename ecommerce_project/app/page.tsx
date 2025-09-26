@@ -15,7 +15,7 @@ export default function Hero() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent"></div>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-4 sm:px-2 animate-fade-in">
           <h1 className="text-3xl sm:text-2xl md:text-5xl font-extrabold text-center drop-shadow-lg">
-            Welcome to Kalika Creations
+            Welcome to Kaalika Creations
           </h1>
           <p className="text-base sm:text-sm md:text-lg text-center mt-2 drop-shadow-md">
             Discover the latest trends in fashion
