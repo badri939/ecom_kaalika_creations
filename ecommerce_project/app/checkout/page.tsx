@@ -39,13 +39,16 @@ export default withAuth(function CheckoutPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          cart,
-          totalCost,
-          name,
-          address,
-          paymentMethod,
-          customerEmail,
-          paymentId,
+          data: {
+            customerEmail,
+            customerName: name,
+            address,
+            transactionStatus: "paid",
+            paymentId,
+            totalCost,
+            cart,
+            paymentMethod,
+          },
         }),
       });
 
