@@ -12,7 +12,7 @@ export default function KurthisPage() {
 
 	useEffect(() => {
 		   fetch(
-			   `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/products?populate=*&filters[category][$eq]=Kurthis`
+			   `${process.env.EXT_PUBLIC_STRAPI_UR}/api/products?populate=*&filters[category][$eq]=Kurthis`
 		   )
 			.then((res) => res.json())
 			.then((data) => {
@@ -48,7 +48,7 @@ export default function KurthisPage() {
 		       {paginatedProducts.map((item) => {
 			   const { id, name, description, price, slug, image } = item;
 			   const imageUrl = image?.url
-				   ? `${process.env.NEXT_PUBLIC_STRAPI_URL}${image.url}`
+				   ? `${process.env.EXT_PUBLIC_STRAPI_UR}${image.url}`
 				   : "/images/product1.webp";
 			   return (
 				   <div
