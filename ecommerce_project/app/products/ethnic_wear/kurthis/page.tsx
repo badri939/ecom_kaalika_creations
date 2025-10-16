@@ -10,20 +10,26 @@ export default function KurthisPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	useEffect(() => {
+	   useEffect(() => {
+		   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_UR;
+		   if (!strapiUrl) {
+			   setError("Strapi API URL is not set");
+			   setLoading(false);
+			   return;
+		   }
 		   fetch(
-			   `${process.env.EXT_PUBLIC_STRAPI_UR}/api/products?populate=*&filters[category][$eq]=Kurthis`
+			   `${strapiUrl}/api/products?populate=*&filters[category][$eq]=Kurthis`
 		   )
-			.then((res) => res.json())
-			.then((data) => {
-				setProducts(data.data || []);
-				setLoading(false);
-			})
-			.catch((err) => {
-				setError("Failed to fetch products");
-				setLoading(false);
-			});
-	}, []);
+			   .then((res) => res.json())
+			   .then((data) => {
+				   setProducts(data.data || []);
+				   setLoading(false);
+			   })
+			   .catch((err) => {
+				   setError("Failed to fetch products");
+				   setLoading(false);
+			   });
+	   }, []);
 
 	const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
 	const paginatedProducts = products.slice(
