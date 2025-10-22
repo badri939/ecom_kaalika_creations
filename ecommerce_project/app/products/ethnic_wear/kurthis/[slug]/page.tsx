@@ -17,7 +17,7 @@ export default function KurthiDetailPage() {
 	useEffect(() => {
 		if (!slug) return;
 		   fetch(
-			   `${process.env.EXT_PUBLIC_STRAPI_UR}/api/products?populate=*&filters[slug][$eq]=${encodeURIComponent(
+			   `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/products?populate=*&filters[slug][$eq]=${encodeURIComponent(
 				   slug
 			   )}`
 		   )
@@ -71,7 +71,7 @@ export default function KurthiDetailPage() {
 	const imageObj = attrs.image || attrs.Image?.data?.attributes || {};
 	   // Use main image or fallback
 	   const imageUrl = imageObj.url
-		   ? `${process.env.EXT_PUBLIC_STRAPI_UR}${imageObj.url}`
+		   ? `${process.env.NEXT_PUBLIC_STRAPI_URL}${imageObj.url}`
 		   : "/images/product1.webp";
 	const getPriceNumber = (price: any) =>
 		typeof price === "number"

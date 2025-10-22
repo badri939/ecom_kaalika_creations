@@ -11,7 +11,7 @@ export default function KurthisPage() {
 	const [error, setError] = useState<string | null>(null);
 
 	   useEffect(() => {
-		   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_UR;
+		   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL;
 		   if (!strapiUrl) {
 			   setError("Strapi API URL is not set");
 			   setLoading(false);
@@ -54,7 +54,7 @@ export default function KurthisPage() {
 		       {paginatedProducts.map((item) => {
 			   const { id, name, description, price, slug, image } = item;
 			   const imageUrl = image?.url
-				   ? `${process.env.EXT_PUBLIC_STRAPI_UR}${image.url}`
+				   ? `${process.env.NEXT_PUBLIC_STRAPI_URL}${image.url}`
 				   : "/images/product1.webp";
 			   return (
 				   <div

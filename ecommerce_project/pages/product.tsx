@@ -25,7 +25,7 @@ const ProductPage: React.FC<ProductProps> = ({ product }) => {
     return <div className="p-8 text-center text-red-500">Product not found.</div>;
   }
   const imageUrl = attributes.image?.data?.attributes?.url
-  ? `${process.env.EXT_PUBLIC_STRAPI_UR}${attributes.image.data.attributes.url}`
+  ? `${process.env.NEXT_PUBLIC_STRAPI_URL}${attributes.image.data.attributes.url}`
     : null;
 
   return (
@@ -45,7 +45,7 @@ const ProductPage: React.FC<ProductProps> = ({ product }) => {
 };
 
 export async function getServerSideProps() {
-  const res = await fetch(`${process.env.EXT_PUBLIC_STRAPI_UR}/api/product?populate=*`);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/product?populate=*`);
   const product = await res.json();
 
   return {
