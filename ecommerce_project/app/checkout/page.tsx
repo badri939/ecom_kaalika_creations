@@ -32,23 +32,19 @@ export default withAuth(function CheckoutPage() {
       const customerEmail = user.email;
       const paymentId = ""; // Replace with actual paymentId if available
 
-      const response = await fetch("/api/checkout", {
+      const response = await fetch("https://checkout-service-mdzx.onrender.com/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          data: {
-            customerEmail,
-            customerName: name,
-            address,
-            transactionStatus: "paid",
-            paymentId,
-            totalCost,
-            cart,
-            paymentMethod,
-          },
+          cart,
+          totalCost,
+          name,
+          address,
+          paymentMethod,
+          customerEmail,
+          paymentId,
         }),
       });
 
