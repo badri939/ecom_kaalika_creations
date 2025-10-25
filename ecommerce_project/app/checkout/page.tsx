@@ -32,6 +32,17 @@ export default withAuth(function CheckoutPage() {
       const customerEmail = user.email;
       const paymentId = ""; // Replace with actual paymentId if available
 
+      // Map client-side payment values to Strapi's expected enum values
+      const paymentMap: Record<string, string> = {
+        "credit-card": "Card",
+        card: "Card",
+        paypal: "Paypal",
+        cod: "Cash on Delivery",
+        "cash-on-delivery": "Cash on Delivery",
+      };
+
+      const mappedPaymentMethod = paymentMap[(paymentMethod || "").toString().trim().toLowerCase()] || paymentMethod;
+
       const response = await fetch("https://checkout-service-mdzx.onrender.com/api/checkout", {
         method: "POST",
         headers: {
@@ -42,7 +53,7 @@ export default withAuth(function CheckoutPage() {
           totalCost,
           name,
           address,
-          paymentMethod,
+          paymentMethod: mappedPaymentMethod,
           customerEmail,
           paymentId,
         }),
