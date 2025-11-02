@@ -7,14 +7,62 @@ import { withAuth } from "@/context/AuthContext";
 import { auth } from "@/firebaseConfig";
 import { useRouter } from "next/navigation";
 
+// IMPORTANT: Expose checkout API URL and Razorpay key as NEXT_PUBLIC_* env vars for client-side use.
+const CHECKOUT_API_URL = process.env.NEXT_PUBLIC_CHECKOUT_API_URL || "https://checkout-service-mdzx.onrender.com";
+const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY || "rzp_test_your_key_id";
+
+async function loadRazorpayScript(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if ((window as any).Razorpay) return true;
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export default withAuth(function CheckoutPage() {
   const { cart, clearCart } = useCart();
   const totalCost = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("credit-card");
   const router = useRouter();
+
+  // Assumption: the backend `POST /api/create-order` expects amount in paise (Razorpay standard).
+  // If your backend expects rupees, remove the *100 when calling create-order.
+  const createRazorpayOrder = async (amountInRupees: number) => {
+    const amountInPaise = Math.round(amountInRupees * 100);
+    const res = await fetch(`${CHECKOUT_API_URL}/api/create-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: amountInPaise, currency: "INR" }),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`Create order failed: ${txt}`);
+    }
+    return res.json();
+  };
+
+  const verifyPayment = async (payload: any, idToken?: string | null) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
+    const res = await fetch(`${CHECKOUT_API_URL}/api/checkout`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err || "Verification failed");
+    }
+    return res.json();
+  };
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,15 +75,20 @@ export default withAuth(function CheckoutPage() {
         return;
       }
 
-      const token = await user.getIdToken();
-      // You may need to get paymentId from your payment integration
-      const customerEmail = user.email;
-      const paymentId = ""; // Replace with actual paymentId if available
+      const idToken = await user.getIdToken();
+      const customerEmail = user.email || "";
 
-      // Map client-side payment values to Strapi's expected enum values
+      // Map client-side payment values to backend enum values
       const paymentMap: Record<string, string> = {
         "credit-card": "Card",
         card: "Card",
+        "debit-card": "Card",
+        upi: "UPI",
+        gpay: "UPI",
+        phonepe: "UPI",
+        netbanking: "Net Banking",
+        wallet: "Wallet",
+        razorpay: "Razorpay",
         paypal: "Paypal",
         cod: "Cash on Delivery",
         "cash-on-delivery": "Cash on Delivery",
@@ -43,64 +96,104 @@ export default withAuth(function CheckoutPage() {
 
       const mappedPaymentMethod = paymentMap[(paymentMethod || "").toString().trim().toLowerCase()] || paymentMethod;
 
-      const response = await fetch("https://checkout-service-mdzx.onrender.com/api/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          cart,
-          totalCost,
-          name,
-          address,
-          paymentMethod: mappedPaymentMethod,
-          customerEmail,
-          paymentId,
-        }),
-      });
-
-      if (!response.ok) {
-        let errorMsg = "Failed to place order.";
-        try {
-          const errorData = await response.json();
-          errorMsg = errorData.message || errorMsg;
-        } catch {}
-        throw new Error(errorMsg);
-      }
-
-      const data = await response.json();
-      if (data?.redirectUrl) {
-        // Generate a simple invoice HTML
-        const invoiceHtml = `
-          <h2>Thank you for your purchase!</h2>
-          <p>Order ID: ${data.orderId || "N/A"}</p>
-          <h3>Order Summary</h3>
-          <ul>
-            ${cart.map(item => `<li>${item.name} (x${item.quantity}): ₹${item.price * item.quantity}</li>`).join("")}
-          </ul>
-          <p><strong>Total: ₹${totalCost}</strong></p>
-        `;
-        // Only send invoice if user email exists
-        if (customerEmail) {
-          await sendInvoice({
-            recipient: customerEmail,
-            subject: `Your Invoice for Order #${data.orderId || "N/A"}`,
-            html: invoiceHtml,
-          });
+      if (mappedPaymentMethod === "Cash on Delivery") {
+        // fallback to server-only flow for COD
+        const payload = { cart, totalCost, name, address, paymentMethod: mappedPaymentMethod, customerEmail };
+        const result = await verifyPayment(payload, idToken);
+        if (result?.redirectUrl) {
+          clearCart();
+          router.push(result.redirectUrl);
         } else {
-          console.warn("No user email found, invoice not sent.");
+          alert("Order placed successfully.");
+          clearCart();
+          router.push("/order/success");
         }
-        clearCart();
-        router.push(data.redirectUrl);
-      } else {
-        throw new Error("No redirect URL returned.");
+        return;
       }
-    } catch (error) {
-  console.error("Error placing order:", error);
-  const errMsg = (error instanceof Error ? error.message : "Failed to place order. Please try again.");
-  alert(errMsg);
+
+      // For online payments we do 3-step Razorpay flow
+      setIsProcessingPayment(true);
+      // 1) create order on your checkout service
+      const order = await createRazorpayOrder(totalCost);
+
+      // 2) load Razorpay script
+      const ok = await loadRazorpayScript();
+      if (!ok) throw new Error("Failed to load Razorpay SDK. Please check your connection.");
+
+      // 3) open Razorpay popup
+      const options: any = {
+        key: RAZORPAY_KEY_ID,
+        amount: order.amount || Math.round(totalCost * 100),
+        currency: order.currency || "INR",
+        name: "Kaalika Creations",
+        description: "Order Payment",
+        order_id: order.id || order.razorpayOrderId || undefined,
+        handler: async function (response: any) {
+          try {
+            // response contains razorpay_payment_id, razorpay_order_id, razorpay_signature
+            const verificationPayload = {
+              cart,
+              totalCost,
+              name,
+              address,
+              paymentMethod: mappedPaymentMethod,
+              customerEmail,
+              paymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              signature: response.razorpay_signature,
+            };
+            const verifyResult = await verifyPayment(verificationPayload, idToken);
+            // send invoice if available
+            if (customerEmail) {
+              const invoiceHtml = `
+                <h2>Thank you for your purchase!</h2>
+                <p>Order ID: ${verifyResult.orderId || verifyResult.id || "N/A"}</p>
+                <h3>Order Summary</h3>
+                <ul>
+                  ${cart.map((item: any) => `<li>${item.name} (x${item.quantity}): ₹${item.price * item.quantity}</li>`).join("")}
+                </ul>
+                <p><strong>Total: ₹${totalCost}</strong></p>
+              `;
+              await sendInvoice({ recipient: customerEmail, subject: `Invoice for Order #${verifyResult.orderId || "N/A"}`, html: invoiceHtml });
+            }
+            clearCart();
+            if (verifyResult?.redirectUrl) router.push(verifyResult.redirectUrl);
+            else router.push(`/order/success`);
+          } catch (err: any) {
+            console.error("Payment verification failed:", err);
+            alert(err?.message || "Payment verification failed. Please contact support.");
+          } finally {
+            setIsProcessingPayment(false);
+            setIsSubmitting(false);
+          }
+        },
+        prefill: {
+          name,
+          email: customerEmail,
+        },
+        notes: {
+          address,
+        },
+        theme: {
+          color: "#3399cc",
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessingPayment(false);
+            setIsSubmitting(false);
+            alert("Payment popup closed. Payment not completed.");
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      alert(error?.message || "Failed to complete checkout. Please try again.");
     } finally {
       setIsSubmitting(false);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -153,7 +246,11 @@ export default withAuth(function CheckoutPage() {
             onChange={e => setPaymentMethod(e.target.value)}
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 text-base"
           >
-            <option value="credit-card">Credit Card</option>
+            <option value="credit-card">Credit / Debit Card</option>
+            <option value="upi">UPI (GPay, PhonePe)</option>
+            <option value="netbanking">Net Banking</option>
+            <option value="wallet">Wallet</option>
+            <option value="razorpay">Razorpay Wallet</option>
             <option value="paypal">PayPal</option>
             <option value="cod">Cash on Delivery</option>
           </select>
@@ -161,9 +258,9 @@ export default withAuth(function CheckoutPage() {
         <button
           type="submit"
           className="w-full bg-green-500 text-white py-3 rounded hover:bg-green-600 disabled:opacity-60 text-base"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isProcessingPayment}
         >
-          {isSubmitting ? "Placing Order..." : "Place Order"}
+          {isSubmitting || isProcessingPayment ? "Processing Payment..." : "Place Order"}
         </button>
       </form>
     </div>
