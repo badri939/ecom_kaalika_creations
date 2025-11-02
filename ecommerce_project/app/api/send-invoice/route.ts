@@ -28,6 +28,16 @@ try {
   console.error("Firebase admin init error:", err);
 }
 
+// Small helper to escape HTML to avoid injection in email templates
+function escapeHtml(input: string) {
+  return String(input)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function POST(request: Request) {
   // Ensure SendGrid is configured
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -99,20 +109,73 @@ export async function POST(request: Request) {
       const amount = orderMetadata?.total || orderMetadata?.totalCost || "N/A";
       const customerEmail = orderMetadata?.customerEmail || orderMetadata?.email || "N/A";
 
-      const adminHtml = `
-        <h2>New Order Received</h2>
-        <p><strong>Order ID:</strong> ${orderId}</p>
-        <p><strong>Payment ID:</strong> ${paymentId}</p>
-        <p><strong>Amount:</strong> ₹${amount}</p>
-        <p><strong>Customer Email:</strong> ${customerEmail}</p>
-        <h3>Items</h3>
-        <ul>
-          ${Array.isArray(orderMetadata?.cart)
-            ? orderMetadata.cart.map((it: any) => `<li>${it.name} (x${it.quantity}) — ₹${it.price * it.quantity}</li>`).join("")
-            : "<li>Not provided</li>"}
-        </ul>
-        <p>View order in admin: <a href="${ADMIN_CONSOLE_URL.replace(/\/$/, "")}/orders/${orderId}">${ADMIN_CONSOLE_URL.replace(/\/$/, "")}/orders/${orderId}</a></p>
-      `;
+        const itemsHtml = Array.isArray(orderMetadata?.cart)
+          ? orderMetadata.cart
+              .map(
+                (it: any) => `
+                  <tr>
+                    <td style="padding:8px;border:1px solid #e6e6e6">${escapeHtml(String(it.name))}</td>
+                    <td style="padding:8px;border:1px solid #e6e6e6;text-align:center">${escapeHtml(String(it.quantity))}</td>
+                    <td style="padding:8px;border:1px solid #e6e6e6;text-align:right">₹${escapeHtml(String(it.price * it.quantity))}</td>
+                  </tr>`
+              )
+              .join("")
+          : `<tr><td colspan="3" style="padding:8px;border:1px solid #e6e6e6">No item details</td></tr>`;
+
+        const adminHtml = `
+          <div style="font-family:Arial,Helvetica,sans-serif;color:#111;background:#f9fafb;padding:20px">
+            <div style="max-width:700px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">
+              <div style="background:#111827;padding:16px 20px;color:#fff">
+                <h1 style="margin:0;font-size:18px">Kaalika Creations — New Order</h1>
+              </div>
+              <div style="padding:20px">
+                <p style="margin:0 0 12px">A new order has been placed. Summary below.</p>
+
+                <table style="width:100%;margin-bottom:12px;border-collapse:collapse">
+                  <tr>
+                    <td style="padding:8px;border:1px solid #e6e6e6;width:50%"><strong>Order ID</strong></td>
+                    <td style="padding:8px;border:1px solid #e6e6e6">${escapeHtml(orderId)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px;border:1px solid #e6e6e6"><strong>Payment ID</strong></td>
+                    <td style="padding:8px;border:1px solid #e6e6e6">${escapeHtml(paymentId)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px;border:1px solid #e6e6e6"><strong>Amount</strong></td>
+                    <td style="padding:8px;border:1px solid #e6e6e6">₹${escapeHtml(String(amount))}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px;border:1px solid #e6e6e6"><strong>Customer</strong></td>
+                    <td style="padding:8px;border:1px solid #e6e6e6">${escapeHtml(customerEmail)}</td>
+                  </tr>
+                </table>
+
+                <h3 style="margin:12px 0">Items</h3>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+                  <thead>
+                    <tr style="background:#f3f4f6">
+                      <th style="padding:8px;border:1px solid #e6e6e6;text-align:left">Product</th>
+                      <th style="padding:8px;border:1px solid #e6e6e6;text-align:center">Qty</th>
+                      <th style="padding:8px;border:1px solid #e6e6e6;text-align:right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${itemsHtml}
+                  </tbody>
+                </table>
+
+                <p style="margin:0 0 16px"><strong>Total:</strong> ₹${escapeHtml(String(amount))}</p>
+
+                <p style="margin:0 0 20px">Open in admin: <a href="${ADMIN_CONSOLE_URL.replace(/\/$/, "")}/orders/${orderId}" style="color:#2563eb">${ADMIN_CONSOLE_URL.replace(/\/$/, "")}/orders/${orderId}</a></p>
+
+                <div style="text-align:center">
+                  <a href="${ADMIN_CONSOLE_URL.replace(/\/$/, "")}/orders/${orderId}" style="display:inline-block;padding:10px 16px;background:#111827;color:#fff;border-radius:6px;text-decoration:none">View Order</a>
+                </div>
+              </div>
+              <div style="background:#f9fafb;padding:12px 20px;font-size:12px;color:#6b7280">This is an automated notification from Kaalika Creations.</div>
+            </div>
+          </div>
+        `;
 
       const adminSubject = `New Order ${orderId} — Kaalika Creations`;
 
