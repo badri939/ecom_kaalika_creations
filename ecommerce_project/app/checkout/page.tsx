@@ -154,7 +154,18 @@ export default withAuth(function CheckoutPage() {
                 </ul>
                 <p><strong>Total: ₹${totalCost}</strong></p>
               `;
-              await sendInvoice({ recipient: customerEmail, subject: `Invoice for Order #${verifyResult.orderId || "N/A"}`, html: invoiceHtml });
+
+              const orderMetadata = {
+                orderId: verifyResult.orderId || verifyResult.id || null,
+                paymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id,
+                total: totalCost,
+                cart,
+                customerEmail,
+                paymentMethod: mappedPaymentMethod,
+              };
+
+              await sendInvoice({ recipient: customerEmail, subject: `Invoice for Order #${verifyResult.orderId || "N/A"}`, html: invoiceHtml, orderMetadata });
             }
             clearCart();
             if (verifyResult?.redirectUrl) router.push(verifyResult.redirectUrl);
