@@ -84,10 +84,12 @@ export default withAuth(function CheckoutPage() {
         "credit-card": "Card",
         card: "Card",
         "debit-card": "Card",
-        upi: "UPI",
-        gpay: "UPI",
-        phonepe: "UPI",
-        netbanking: "Net Banking",
+        // Map several online instruments to "Card" as a temporary compatibility fix
+        // Note: Strapi currently accepts only [Card, Paypal, Cash on Delivery]
+        upi: "Card",
+        gpay: "Card",
+        phonepe: "Card",
+        netbanking: "Card",
         wallet: "Wallet",
         razorpay: "Razorpay",
         paypal: "Paypal",
