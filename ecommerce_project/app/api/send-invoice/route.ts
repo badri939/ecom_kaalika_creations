@@ -104,10 +104,12 @@ export async function POST(request: Request) {
       // Build a minimal admin HTML with order summary and helpful links
       const ADMIN_CONSOLE_URL = process.env.ADMIN_CONSOLE_URL || `https://your-admin-console.example.com`;
 
-      const orderId = orderMetadata?.orderId || orderMetadata?.id || "N/A";
-      const paymentId = orderMetadata?.paymentId || orderMetadata?.payment_id || "N/A";
-      const amount = orderMetadata?.total || orderMetadata?.totalCost || "N/A";
-      const customerEmail = orderMetadata?.customerEmail || orderMetadata?.email || "N/A";
+  const orderId = orderMetadata?.orderId || orderMetadata?.id || "N/A";
+  const paymentId = orderMetadata?.paymentId || orderMetadata?.payment_id || "N/A";
+  const amount = orderMetadata?.total || orderMetadata?.totalCost || "N/A";
+  const customerEmail = orderMetadata?.customerEmail || orderMetadata?.email || "N/A";
+  const shippingAddress = orderMetadata?.address || orderMetadata?.shippingAddress || "N/A";
+  const phone = orderMetadata?.phone || orderMetadata?.customerPhone || "N/A";
 
         const itemsHtml = Array.isArray(orderMetadata?.cart)
           ? orderMetadata.cart
@@ -147,6 +149,14 @@ export async function POST(request: Request) {
                   <tr>
                     <td style="padding:8px;border:1px solid #e6e6e6"><strong>Customer</strong></td>
                     <td style="padding:8px;border:1px solid #e6e6e6">${escapeHtml(customerEmail)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px;border:1px solid #e6e6e6"><strong>Phone</strong></td>
+                    <td style="padding:8px;border:1px solid #e6e6e6">${escapeHtml(phone)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px;border:1px solid #e6e6e6"><strong>Shipping Address</strong></td>
+                    <td style="padding:8px;border:1px solid #e6e6e6">${escapeHtml(shippingAddress)}</td>
                   </tr>
                 </table>
 

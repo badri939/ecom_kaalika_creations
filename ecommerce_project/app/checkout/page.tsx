@@ -30,6 +30,7 @@ export default withAuth(function CheckoutPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("credit-card");
   const router = useRouter();
 
@@ -98,7 +99,7 @@ export default withAuth(function CheckoutPage() {
 
       if (mappedPaymentMethod === "Cash on Delivery") {
         // fallback to server-only flow for COD
-        const payload = { cart, totalCost, name, address, paymentMethod: mappedPaymentMethod, customerEmail };
+        const payload = { cart, totalCost, name, address, phone, paymentMethod: mappedPaymentMethod, customerEmail };
         const result = await verifyPayment(payload, idToken);
         if (result?.redirectUrl) {
           clearCart();
@@ -136,6 +137,7 @@ export default withAuth(function CheckoutPage() {
               totalCost,
               name,
               address,
+              phone,
               paymentMethod: mappedPaymentMethod,
               customerEmail,
               paymentId: response.razorpay_payment_id,
@@ -163,6 +165,8 @@ export default withAuth(function CheckoutPage() {
                 cart,
                 customerEmail,
                 paymentMethod: mappedPaymentMethod,
+                address,
+                phone,
               };
 
               await sendInvoice({ recipient: customerEmail, subject: `Invoice for Order #${verifyResult.orderId || "N/A"}`, html: invoiceHtml, orderMetadata });
@@ -248,6 +252,17 @@ export default withAuth(function CheckoutPage() {
             onChange={e => setAddress(e.target.value)}
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 text-base"
           ></textarea>
+        </div>
+        <div>
+          <label className="block text-base font-medium text-gray-900">Phone</label>
+          <input
+            type="tel"
+            required
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            placeholder="e.g. +91 98765 43210"
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 text-base"
+          />
         </div>
         <div>
           <label className="block text-base font-medium text-gray-900">Payment Method</label>
