@@ -11,6 +11,7 @@ export type InvoicePayload = {
 
 export async function sendInvoice(payload: InvoicePayload): Promise<void> {
   try {
+    console.log("sendInvoice: start", { recipient: payload.recipient, orderMetadata: payload.orderMetadata?.orderId || null });
     // Use relative API route so we can run server-side sending (keeps API keys secret)
     const url = `/api/send-invoice`;
 
@@ -46,7 +47,7 @@ export async function sendInvoice(payload: InvoicePayload): Promise<void> {
       throw new Error(errorText || "Failed to send invoice");
     }
 
-    console.log("Invoice sent successfully");
+    console.log("sendInvoice: success", { recipient: payload.recipient });
   } catch (error) {
     console.error("Error sending invoice:", error);
   }

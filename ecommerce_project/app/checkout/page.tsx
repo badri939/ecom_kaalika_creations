@@ -103,6 +103,50 @@ export default withAuth(function CheckoutPage() {
         // fallback to server-only flow for COD
         const payload = { cart, totalCost, name, address, phone, paymentMethod: mappedPaymentMethod, customerEmail };
         const result = await verifyPayment(payload, idToken);
+
+        // Attempt to send purchaser invoice as a client-side fallback for COD orders.
+        // This should trigger a POST to /api/send-invoice which you can observe in the Network tab.
+        try {
+          if (customerEmail) {
+            console.log("COD flow: preparing to send purchaser invoice", { orderId: result?.orderId || result?.id || null, recipient: customerEmail });
+
+            const invoiceHtml = `
+              <h2>Thank you for your order!</h2>
+              <p>Order ID: ${result?.orderId || result?.id || "N/A"}</p>
+              <h3>Order Summary</h3>
+              <ul>
+                ${cart.map((item: any) => `<li>${item.name} (x${item.quantity}): ₹${item.price * item.quantity}</li>`).join("")}
+              </ul>
+              <p><strong>Total: ₹${totalCost}</strong></p>
+            `;
+
+            const orderMetadata = {
+              orderId: result?.orderId || result?.id || null,
+              total: totalCost,
+              cart,
+              customerEmail,
+              paymentMethod: mappedPaymentMethod,
+              address,
+              phone,
+            };
+
+            console.log("COD flow: sending purchaser invoice POST to /api/send-invoice (will show blocking alert)");
+            // Temporary blocking alert to force the browser to pause so you can inspect Network/Console.
+            // Remove this after debugging.
+            try {
+              // eslint-disable-next-line no-alert
+              alert("DEBUG: About to send purchaser invoice. Click OK to continue and observe Network tab for POST /api/send-invoice.");
+            } catch (e) {
+              // ignore - alert may be blocked in some environments
+            }
+
+            await sendInvoice({ recipient: customerEmail, subject: `Invoice for Order #${result?.orderId || result?.id || "N/A"}`, html: invoiceHtml, orderMetadata });
+            console.log("COD flow: sendInvoice resolved (buyer)");
+          }
+        } catch (err) {
+          console.error("COD flow: failed to send purchaser invoice:", err);
+        }
+
         if (result?.redirectUrl) {
           clearCart();
           router.push(result.redirectUrl);
