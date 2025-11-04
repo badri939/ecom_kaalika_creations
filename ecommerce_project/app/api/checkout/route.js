@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import admin from "firebase-admin";
-import { getFirestore } from "firebase-admin/firestore";
 
 // Use environment variables for service account credentials
 // Set these in your Vercel dashboard (Settings > Environment Variables)
@@ -17,18 +15,8 @@ const serviceAccount = {
   client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
 };
 
-// Initialize Firebase Admin SDK only if credentials are available
-let db = null;
-if (process.env.FIREBASE_PROJECT_ID && !admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    db = getFirestore();
-  } catch (error) {
-    console.error("Firebase initialization failed:", error);
-  }
-}
+const { initFirebase } = require("../../../lib/firebaseAdmin");
+const { admin, db, initialized: firebaseInitialized } = initFirebase();
 
 export async function POST(request) {
   try {

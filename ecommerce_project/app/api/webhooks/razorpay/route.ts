@@ -1,31 +1,11 @@
 import { NextResponse } from "next/server";
-import admin from "firebase-admin";
+const { initFirebase } = require("../../../../lib/firebaseAdmin");
+const { admin, db, initialized: firebaseInitialized } = initFirebase();
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 
-const serviceAccount = {
-  type: process.env.FIREBASE_TYPE,
-  project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: process.env.FIREBASE_AUTH_URI,
-  token_uri: process.env.FIREBASE_TOKEN_URI,
-  auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-};
-
-let firebaseInitialized = false;
-try {
-  if (process.env.FIREBASE_PROJECT_ID && !admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount as any) });
-    firebaseInitialized = true;
-  }
-} catch (err) {
-  console.error("Firebase admin init error (razorpay-webhook):", err);
-}
+// Firebase admin initialization handled by centralized helper (initFirebase)
 
 const TEST_WRITE_FS = (process.env.WEBHOOK_TEST_WRITE_FS === "true") || process.env.NODE_ENV === "development";
 const TEST_WRITE_DIR = path.join(process.cwd(), "tmp", "razorpay_webhooks");
@@ -107,7 +87,7 @@ export async function POST(request: Request) {
 
         if (!snaps.empty) {
           const promises: Promise<any>[] = [];
-          snaps.forEach((doc) => {
+          snaps.forEach((doc: any) => {
             const data: any = { invoice: inv };
             if (event === "invoice.paid") {
               data.paid = true;
