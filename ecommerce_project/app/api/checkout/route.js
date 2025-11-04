@@ -39,7 +39,8 @@ export async function POST(request) {
         { status: 500 }
       );
     }
-    const { cart, totalCost } = await request.json();
+  const body = await request.json();
+  const { cart, totalCost, paymentMethod, customer } = body;
     const authHeader = request.headers.get("authorization");
 
     console.log("/api/checkout: payload parsed", { cartLength: cart?.length ?? 0, totalCost });
@@ -87,6 +88,27 @@ export async function POST(request) {
 
       const orderRef = db.collection("orders").doc(order.id.toString());
       await orderRef.set(order);
+
+      // Create an idempotent admin notification for this order so admins see new orders
+      // Use a deterministic doc id (order_<orderId>) and merge so duplicate writes are safe
+      try {
+        const notifRef = db.collection("admin_notifications").doc(`order_${order.id}`);
+        await notifRef.set({
+          orderId: order.id,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          unread: true,
+          type: "order_placed",
+          paymentMethod: paymentMethod || "unknown",
+          meta: {
+            customerName: (customer && customer.name) || null,
+            total: order.total || null,
+            itemsCount: Array.isArray(order.items) ? order.items.length : null,
+          },
+        }, { merge: true });
+      } catch (notifErr) {
+        console.error("/api/checkout: failed to create admin notification for order", order.id, notifErr);
+        // don't throw - keep checkout success for the customer even if notifications fail
+      }
 
       // Respond with order confirmation and redirect URL
       return NextResponse.json({
