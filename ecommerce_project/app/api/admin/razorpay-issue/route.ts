@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 // firebase admin is initialized via the centralized helper below
 
 import fetch from "node-fetch";
-const { initFirebase } = require("../../../lib/firebaseAdmin");
-const { admin, db, initialized: firebaseInitialized } = initFirebase();
+const fbMod = require("../../../lib/firebaseAdmin");
+function _resolveInit() {
+  if (!fbMod) return null;
+  if (typeof fbMod.initFirebase === "function") return fbMod.initFirebase;
+  if (fbMod.default && typeof fbMod.default.initFirebase === "function") return fbMod.default.initFirebase;
+  if (typeof fbMod === "function") return fbMod;
+  return null;
+}
+const _init = _resolveInit();
+const { admin, db, initialized: firebaseInitialized } = _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
 
 function isAuthorized(request: Request) {
   const auth = request.headers.get("authorization") || "";
