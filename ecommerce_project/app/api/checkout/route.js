@@ -32,7 +32,9 @@ if (process.env.FIREBASE_PROJECT_ID && !admin.apps.length) {
 
 export async function POST(request) {
   try {
+    console.log("/api/checkout POST handler invoked at", new Date().toISOString());
     if (!db) {
+      console.error("/api/checkout: Firebase not configured (db is null)");
       return NextResponse.json(
         { error: "Firebase not configured" },
         { status: 500 }
@@ -40,6 +42,9 @@ export async function POST(request) {
     }
     const { cart, totalCost } = await request.json();
     const authHeader = request.headers.get("authorization");
+
+    console.log("/api/checkout: payload parsed", { cartLength: cart?.length ?? 0, totalCost });
+    console.log("/api/checkout: auth header present?", Boolean(authHeader));
 
     console.log("Incoming request payload:", { cart, totalCost });
     console.log("Authorization header:", authHeader);
@@ -49,41 +54,51 @@ export async function POST(request) {
     }
 
     const token = authHeader.split(" ")[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    try {
+      console.log("/api/checkout: verifying id token...");
+      const start = Date.now();
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      console.log("/api/checkout: verifyIdToken succeeded in", Date.now() - start, "ms");
 
-    const order = {
-      id: Date.now(),
-      items: cart,
-      total: totalCost,
-      date: new Date().toISOString(),
-    };
+      // continue using decodedToken below
+      
+      const order = {
+        id: Date.now(),
+        items: cart,
+        total: totalCost,
+        date: new Date().toISOString(),
+      };
 
-    const userRef = db.collection("users").doc(decodedToken.uid);
-    const userDoc = await userRef.get();
-    if (!userDoc.exists) {
-      await userRef.set({
-        orderHistory: [],
-        invoices: [],
+      const userRef = db.collection("users").doc(decodedToken.uid);
+      const userDoc = await userRef.get();
+      if (!userDoc.exists) {
+        await userRef.set({
+          orderHistory: [],
+          invoices: [],
+        });
+      }
+      await userRef.update({
+        orderHistory: admin.firestore.FieldValue.arrayUnion(order),
+        invoices: admin.firestore.FieldValue.arrayUnion({
+          id: order.id,
+          date: order.date,
+          total: order.total,
+        }),
       });
+
+      const orderRef = db.collection("orders").doc(order.id.toString());
+      await orderRef.set(order);
+
+      // Respond with order confirmation and redirect URL
+      return NextResponse.json({
+        success: true,
+        orderId: order.id,
+        redirectUrl: `/order/success?orderId=${order.id}`,
+      });
+    } catch (verifyErr) {
+      console.error("/api/checkout: token verification failed:", verifyErr);
+      return NextResponse.json({ error: "Unauthorized - invalid token" }, { status: 401 });
     }
-    await userRef.update({
-      orderHistory: admin.firestore.FieldValue.arrayUnion(order),
-      invoices: admin.firestore.FieldValue.arrayUnion({
-        id: order.id,
-        date: order.date,
-        total: order.total,
-      }),
-    });
-
-    const orderRef = db.collection("orders").doc(order.id.toString());
-    await orderRef.set(order);
-
-    // Respond with order confirmation and redirect URL
-    return NextResponse.json({
-      success: true,
-      orderId: order.id,
-      redirectUrl: `/order/success?orderId=${order.id}`,
-    });
   } catch (error) {
     console.error("Error processing checkout:", error);
     return NextResponse.json({ error: "Failed to process checkout." }, { status: 500 });

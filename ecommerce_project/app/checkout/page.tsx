@@ -54,18 +54,32 @@ export default withAuth(function CheckoutPage() {
   };
 
   const verifyPayment = async (payload: any, idToken?: string | null) => {
+    // Add a client-side timeout so the UI doesn't hang indefinitely
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
-    const res = await fetch(`${CHECKOUT_API_URL}/api/checkout`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err || "Verification failed");
+
+    const controller = new AbortController();
+    const timeoutMs = 20000; // 20 seconds
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${CHECKOUT_API_URL}/api/checkout`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        const err = await res.text().catch(() => null);
+        throw new Error(err || "Verification failed");
+      }
+      return res.json();
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        throw new Error("Request timed out after 20s. Please try again or contact support.");
+      }
+      throw err;
     }
-    return res.json();
   };
 
   const handleCheckout = async (e: React.FormEvent) => {
