@@ -106,46 +106,9 @@ export default withAuth(function CheckoutPage() {
 
         // Attempt to send purchaser invoice as a client-side fallback for COD orders.
         // This should trigger a POST to /api/send-invoice which you can observe in the Network tab.
-        try {
-          if (customerEmail) {
-            console.log("COD flow: preparing to send purchaser invoice", { orderId: result?.orderId || result?.id || null, recipient: customerEmail });
-
-            const invoiceHtml = `
-              <h2>Thank you for your order!</h2>
-              <p>Order ID: ${result?.orderId || result?.id || "N/A"}</p>
-              <h3>Order Summary</h3>
-              <ul>
-                ${cart.map((item: any) => `<li>${item.name} (x${item.quantity}): ₹${item.price * item.quantity}</li>`).join("")}
-              </ul>
-              <p><strong>Total: ₹${totalCost}</strong></p>
-            `;
-
-            const orderMetadata = {
-              orderId: result?.orderId || result?.id || null,
-              total: totalCost,
-              cart,
-              customerEmail,
-              paymentMethod: mappedPaymentMethod,
-              address,
-              phone,
-            };
-
-            console.log("COD flow: sending purchaser invoice POST to /api/send-invoice (will show blocking alert)");
-            // Temporary blocking alert to force the browser to pause so you can inspect Network/Console.
-            // Remove this after debugging.
-            try {
-              // eslint-disable-next-line no-alert
-              alert("DEBUG: About to send purchaser invoice. Click OK to continue and observe Network tab for POST /api/send-invoice.");
-            } catch (e) {
-              // ignore - alert may be blocked in some environments
-            }
-
-            await sendInvoice({ recipient: customerEmail, subject: `Invoice for Order #${result?.orderId || result?.id || "N/A"}`, html: invoiceHtml, orderMetadata });
-            console.log("COD flow: sendInvoice resolved (buyer)");
-          }
-        } catch (err) {
-          console.error("COD flow: failed to send purchaser invoice:", err);
-        }
+            // Manual invoice flow: no automated email will be sent for COD orders.
+            // The admin owner will issue invoices manually via the admin dashboard (Razorpay Invoices).
+            // We keep this branch to successfully complete the COD flow without sending emails.
 
         if (result?.redirectUrl) {
           clearCart();
@@ -192,30 +155,20 @@ export default withAuth(function CheckoutPage() {
             };
             const verifyResult = await verifyPayment(verificationPayload, idToken);
             // send invoice if available
-            if (customerEmail) {
-              const invoiceHtml = `
-                <h2>Thank you for your purchase!</h2>
-                <p>Order ID: ${verifyResult.orderId || verifyResult.id || "N/A"}</p>
-                <h3>Order Summary</h3>
-                <ul>
-                  ${cart.map((item: any) => `<li>${item.name} (x${item.quantity}): ₹${item.price * item.quantity}</li>`).join("")}
-                </ul>
-                <p><strong>Total: ₹${totalCost}</strong></p>
-              `;
+              // Manual invoice flow: we do not send automated purchaser emails.
+              // Admin will create/send invoices manually via the admin dashboard.
 
-              const orderMetadata = {
-                orderId: verifyResult.orderId || verifyResult.id || null,
-                paymentId: response.razorpay_payment_id,
-                razorpayOrderId: response.razorpay_order_id,
-                total: totalCost,
-                cart,
-                customerEmail,
-                paymentMethod: mappedPaymentMethod,
-                address,
-                phone,
-              };
-
-              await sendInvoice({ recipient: customerEmail, subject: `Invoice for Order #${verifyResult.orderId || "N/A"}`, html: invoiceHtml, orderMetadata });
+            // Notify admin dashboard so owner can generate/download Razorpay invoice (minimal polling + Notification API)
+            {
+              const notifyPayload = { orderId: verifyResult.orderId || verifyResult.id || null, customerEmail, name, address, phone, totalCost, cart };
+              // include ID token when available
+              let idToken = null;
+              try { idToken = await user.getIdToken(); } catch {}
+              const headers: any = { "Content-Type": "application/json" };
+              if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
+              fetch(`/api/admin/notify-order`, { method: "POST", headers, body: JSON.stringify(notifyPayload) })
+                .then(r => r.json().then(j => console.log("notify-order result", j)).catch(()=>{}))
+                .catch(err => console.warn("notify-order failed", err));
             }
             clearCart();
             if (verifyResult?.redirectUrl) router.push(verifyResult.redirectUrl);
