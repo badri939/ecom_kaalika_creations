@@ -23,14 +23,17 @@ function _resolveInit() {
   if (typeof fbMod === "function") return fbMod;
   return null;
 }
-const _init = _resolveInit();
-const { admin, db, initialized: firebaseInitialized } = _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+function getFirebase() {
+  const _init = _resolveInit();
+  return _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+}
 
 export async function POST(request) {
   try {
     console.log("/api/checkout POST handler invoked at", new Date().toISOString());
-    if (!db) {
-      console.error("/api/checkout: Firebase not configured (db is null)");
+    const { admin, db, initialized: firebaseInitialized } = getFirebase();
+    if (!db || !firebaseInitialized) {
+      console.error("/api/checkout: Firebase not configured (db is null or not initialized)");
       return NextResponse.json(
         { error: "Firebase not configured" },
         { status: 500 }
@@ -53,7 +56,7 @@ export async function POST(request) {
     try {
       console.log("/api/checkout: verifying id token...");
       const start = Date.now();
-      const decodedToken = await admin.auth().verifyIdToken(token);
+  const decodedToken = await admin.auth().verifyIdToken(token);
       console.log("/api/checkout: verifyIdToken succeeded in", Date.now() - start, "ms");
 
       // continue using decodedToken below

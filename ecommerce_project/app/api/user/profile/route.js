@@ -7,17 +7,19 @@ function _resolveInit() {
   if (typeof fbMod === "function") return fbMod;
   return null;
 }
-const _init = _resolveInit();
-const { admin, db, initialized: firebaseInitialized } = _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+function getFirebase() {
+  const _init = _resolveInit();
+  return _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+}
 
 export async function GET(request) {
-  if (!db) {
+  const { admin, db, initialized: firebaseInitialized } = getFirebase();
+  if (!db || !firebaseInitialized) {
     return NextResponse.json(
       { error: "Firebase not configured" },
       { status: 500 }
     );
   }
-  
   const authHeader = request.headers.get("authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -28,7 +30,7 @@ export async function GET(request) {
 
   try {
     // Verify the token with Firebase Admin SDK
-    const decodedToken = await admin.auth().verifyIdToken(token);
+  const decodedToken = await admin.auth().verifyIdToken(token);
 
     // Fetch user data from Firestore
     const userRef = db.collection("users").doc(decodedToken.uid);
@@ -82,13 +84,13 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  if (!db) {
+  const { admin, db, initialized: firebaseInitialized } = getFirebase();
+  if (!db || !firebaseInitialized) {
     return NextResponse.json(
       { error: "Firebase not configured" },
       { status: 500 }
     );
   }
-  
   const authHeader = request.headers.get("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

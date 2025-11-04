@@ -7,8 +7,10 @@ function _resolveInit() {
   if (typeof fbMod === "function") return fbMod;
   return null;
 }
-const _init = _resolveInit();
-const { admin, db, initialized: firebaseInitialized } = _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+function getFirebase() {
+  const _init = _resolveInit();
+  return _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+}
 
 function isAuthorized(request: Request) {
   const auth = request.headers.get("authorization") || "";
@@ -25,14 +27,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { admin, db, initialized: firebaseInitialized } = getFirebase();
     if (!firebaseInitialized) {
       console.error("unread-count: firebase not initialized");
       return NextResponse.json({ error: "Firebase not configured on server" }, { status: 500 });
     }
 
-    const db = admin.firestore();
+    const firestore = admin.firestore();
     const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7); // last 7 days
-    const snapshot = await db.collection("admin_notifications")
+    const snapshot = await firestore.collection("admin_notifications")
       .where("seen", "==", false)
       .where("createdAt", ">=", admin.firestore.Timestamp.fromDate(since))
       .get();

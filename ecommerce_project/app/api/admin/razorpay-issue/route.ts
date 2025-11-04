@@ -10,8 +10,10 @@ function _resolveInit() {
   if (typeof fbMod === "function") return fbMod;
   return null;
 }
-const _init = _resolveInit();
-const { admin, db, initialized: firebaseInitialized } = _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+function getFirebase() {
+  const _init = _resolveInit();
+  return _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+}
 
 function isAuthorized(request: Request) {
   const auth = request.headers.get("authorization") || "";
@@ -23,9 +25,10 @@ function isAuthorized(request: Request) {
 }
 
 async function fetchNotification(notificationId: string) {
+  const { admin, db, initialized: firebaseInitialized } = getFirebase();
   if (!firebaseInitialized) throw new Error("Firebase not initialized");
-  const db = admin.firestore();
-  const doc = await db.collection("admin_notifications").doc(notificationId).get();
+  const firestore = admin.firestore();
+  const doc = await firestore.collection("admin_notifications").doc(notificationId).get();
   if (!doc.exists) throw new Error("Notification not found");
   return { id: doc.id, ...doc.data() } as any;
 }
@@ -84,9 +87,12 @@ export async function POST(request: Request) {
     }
 
     // mark notification seen if provided
-    if (notificationId && firebaseInitialized) {
-      const db = admin.firestore();
-      await db.collection("admin_notifications").doc(notificationId).update({ seen: true, invoice: { id: json.id, short_url: json.short_url } });
+    if (notificationId) {
+      const { admin, db, initialized: firebaseInitialized } = getFirebase();
+      if (firebaseInitialized) {
+        const firestore = admin.firestore();
+        await firestore.collection("admin_notifications").doc(notificationId).update({ seen: true, invoice: { id: json.id, short_url: json.short_url } });
+      }
     }
 
     return NextResponse.json({ success: true, invoice: { id: json.id, short_url: json.short_url, invoice_pdf: `/api/admin/razorpay-pdf?invoiceId=${json.id}` } });

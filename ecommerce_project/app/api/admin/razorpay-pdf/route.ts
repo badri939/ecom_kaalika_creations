@@ -7,8 +7,10 @@ function _resolveInit() {
   if (typeof fbMod === "function") return fbMod;
   return null;
 }
-const _init = _resolveInit();
-const { admin, db, initialized: firebaseInitialized } = _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+function getFirebase() {
+  const _init = _resolveInit();
+  return _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+}
 
 function isAuthorized(request: Request) {
   const auth = request.headers.get("authorization") || "";

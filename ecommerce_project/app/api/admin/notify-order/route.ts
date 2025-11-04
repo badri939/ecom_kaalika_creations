@@ -7,8 +7,10 @@ function _resolveInit() {
   if (typeof fbMod === "function") return fbMod;
   return null;
 }
-const _init = _resolveInit();
-const { admin, db, initialized: firebaseInitialized } = _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+function getFirebase() {
+  const _init = _resolveInit();
+  return _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+}
 
 export async function POST(request: Request) {
   try {
@@ -16,13 +18,14 @@ export async function POST(request: Request) {
     // body should contain at least orderId and customer info; we'll store the entire payload.
     const payload = body || {};
 
+    const { admin, db, initialized: firebaseInitialized } = getFirebase();
     if (!firebaseInitialized) {
       console.error("notify-order: firebase not initialized");
       return NextResponse.json({ error: "Firebase not configured on server" }, { status: 500 });
     }
 
-    const db = admin.firestore();
-    const docRef = await db.collection("admin_notifications").add({
+    const firestore = admin.firestore();
+    const docRef = await firestore.collection("admin_notifications").add({
       payload,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       seen: false,

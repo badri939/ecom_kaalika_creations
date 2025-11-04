@@ -7,21 +7,25 @@ function _resolveInit() {
   if (typeof fbMod === "function") return fbMod;
   return null;
 }
-const _init = _resolveInit();
-const { admin, db, initialized: firebaseInitialized } = _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+function getFirebase() {
+  const _init = _resolveInit();
+  return _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+}
 
 export async function GET(request, { params: paramsPromise }) {
   const params = await paramsPromise;
   const { id: orderId } = params;
 
   try {
-    if (!db) {
+    const { admin, db, initialized: firebaseInitialized } = getFirebase();
+    if (!db || !firebaseInitialized) {
       return NextResponse.json(
         { error: "Firebase not configured" },
         { status: 500 }
       );
     }
-    const orderRef = db.collection("orders").doc(orderId);
+    const firestore = db; // db in this project is actually a firestore instance
+    const orderRef = firestore.collection("orders").doc(orderId);
     const orderDoc = await orderRef.get();
 
     if (!orderDoc.exists) {
