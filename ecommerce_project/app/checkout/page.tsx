@@ -8,7 +8,10 @@ import { auth } from "@/firebaseConfig";
 import { useRouter } from "next/navigation";
 
 // IMPORTANT: Expose checkout API URL and Razorpay key as NEXT_PUBLIC_* env vars for client-side use.
-const CHECKOUT_API_URL = process.env.NEXT_PUBLIC_CHECKOUT_API_URL || "https://checkout-service-mdzx.onrender.com";
+// If NEXT_PUBLIC_CHECKOUT_API_URL is not provided, use the app-relative API routes
+// so the client calls the same deployed host (prevents hanging when an external
+// checkout-service is not reachable).
+const CHECKOUT_API_URL = process.env.NEXT_PUBLIC_CHECKOUT_API_URL || "";
 const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY || "rzp_test_your_key_id";
 
 async function loadRazorpayScript(): Promise<boolean> {
