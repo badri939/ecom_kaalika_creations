@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     const db = admin.firestore();
     const snapshot = await db.collection("admin_notifications").orderBy("createdAt", "desc").limit(50).get();
     const items: any[] = [];
-    snapshot.forEach(doc => {
+    snapshot.forEach((doc: any) => {
       const data = doc.data();
       items.push({ id: doc.id, ...data });
     });
