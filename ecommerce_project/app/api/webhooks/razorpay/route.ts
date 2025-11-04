@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
-const { initFirebase } = require("../../../../lib/firebaseAdmin");
-const { admin, db, initialized: firebaseInitialized } = initFirebase();
+const fbMod = require("../../../../lib/firebaseAdmin");
+function _resolveInit() {
+  if (!fbMod) return null;
+  if (typeof fbMod.initFirebase === "function") return fbMod.initFirebase;
+  if (fbMod.default && typeof fbMod.default.initFirebase === "function") return fbMod.default.initFirebase;
+  if (typeof fbMod === "function") return fbMod;
+  return null;
+}
+function getFirebase() {
+  const _init = _resolveInit();
+  return _init ? _init() : { admin: require("firebase-admin"), db: null, initialized: false };
+}
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
@@ -68,7 +78,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
-      const now = admin.firestore ? admin.firestore.FieldValue.serverTimestamp() : null;
+      const { admin, db, initialized: firebaseInitialized } = getFirebase();
+      const now = admin && admin.firestore ? admin.firestore.FieldValue.serverTimestamp() : null;
 
       if (!firebaseInitialized) {
         console.error("Firebase not initialized; will write test file instead of Firestore");
@@ -78,12 +89,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
-      const db = admin.firestore();
+      const firestore = db || admin.firestore();
 
       // find any admin_notifications that reference this invoice
       try {
-        const q = db.collection("admin_notifications").where("invoice.id", "==", invoiceId);
-        const snaps = await q.get();
+  const q = firestore.collection("admin_notifications").where("invoice.id", "==", invoiceId);
+  const snaps = await q.get();
 
         if (!snaps.empty) {
           const promises: Promise<any>[] = [];
@@ -102,7 +113,7 @@ export async function POST(request: Request) {
           await Promise.all(promises);
         } else {
           // If no notification exists, create a record so owner can see it
-          await db.collection("admin_notifications").add({
+          await firestore.collection("admin_notifications").add({
             payload: { invoiceEvent: event, invoice: inv },
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             seen: event === "invoice.paid",
