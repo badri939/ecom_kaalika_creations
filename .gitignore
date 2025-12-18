@@ -15,3 +15,5 @@ serviceAccountKey.json
 *.env.production
 *.env.test
 *.env.*.local
+latest_strapi_api_token_for\ express_orders.txt
+strapi_api_token.txt
