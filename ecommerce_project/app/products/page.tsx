@@ -29,7 +29,7 @@ export default function ProductsPage() {
         {products.map((item) => {
           const { id, name, description, price, image } = item;
           const imageUrl = image?.url
-            ? `${process.env.NEXT_PUBLIC_STRAPI_URL}${image.url}`
+            ? (image.url.startsWith('http') ? image.url : `${process.env.NEXT_PUBLIC_STRAPI_URL}${image.url}`)
             : '/images/product1.webp'; // fallback to placeholder image
           return (
             <div key={id} className="border rounded-lg p-4 shadow-md flex flex-col items-center">

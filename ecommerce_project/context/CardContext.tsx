@@ -8,6 +8,7 @@ interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  size?: string;
 }
 
 // Define context data type
@@ -49,11 +50,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setCart((prevCart) => {
-      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
+      // Find existing item with same id AND size
+      const existingItem = prevCart.find(
+        (cartItem) => cartItem.id === item.id && cartItem.size === item.size
+      );
       if (existingItem) {
         console.log("Item already in cart, updating quantity:", existingItem);
         return prevCart.map((cartItem) =>
-          cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
+          cartItem.id === item.id && cartItem.size === item.size
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            : cartItem
         );
       } else {
         console.log("Adding new item to cart:", item);

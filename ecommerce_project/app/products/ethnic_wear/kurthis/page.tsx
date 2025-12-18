@@ -53,9 +53,9 @@ export default function KurthisPage() {
 			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-8">
 		       {paginatedProducts.map((item) => {
 			   const { id, name, description, price, slug, image } = item;
-			   const imageUrl = image?.url
-				   ? `${process.env.NEXT_PUBLIC_STRAPI_URL}${image.url}`
-				   : "/images/product1.webp";
+		   const imageUrl = image?.url
+			   ? (image.url.startsWith('http') ? image.url : `${process.env.NEXT_PUBLIC_STRAPI_URL}${image.url}`)
+			   : "/images/product1.webp";
 			   return (
 				   <div
 					   key={id}

@@ -5,7 +5,7 @@ import { getAuth } from "firebase/auth";
 // Your Firebase configuration details
 const firebaseConfig = {
   apiKey: "AIzaSyBJw2pLgU0JpX-IMcljDbepfHs-DjvPHFk",
-  authDomain: "Yecomm-f3af0.firebaseapp.com",
+  authDomain: "ecomm-f3af0.firebaseapp.com",
   projectId: "ecomm-f3af0",
   storageBucket: "ecomm-f3af0.firebasestorage.app",
   messagingSenderId: "1002224977426",

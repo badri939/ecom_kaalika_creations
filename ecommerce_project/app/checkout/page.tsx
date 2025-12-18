@@ -235,10 +235,11 @@ export default withAuth(function CheckoutPage() {
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Order Summary</h2>
         <ul className="space-y-4 mt-4">
-          {cart.map((item) => (
-            <li key={item.id} className="flex justify-between items-center border-b pb-2">
+          {cart.map((item, index) => (
+            <li key={`${item.id}-${item.size || 'no-size'}-${index}`} className="flex justify-between items-center border-b pb-2">
               <div>
                 <h3 className="text-lg font-semibold">{item.name}</h3>
+                {item.size && <p className="text-sm text-gray-600">Size: {item.size}</p>}
                 <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                 <p className="text-sm text-gray-600">Price: ₹{item.price}</p>
               </div>

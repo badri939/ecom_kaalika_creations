@@ -13,6 +13,7 @@ export default function KurthiDetailPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [quantity, setQuantity] = useState(1);
+	const [selectedSize, setSelectedSize] = useState<string>("");
 
 	useEffect(() => {
 		if (!slug) return;
@@ -69,9 +70,11 @@ export default function KurthiDetailPage() {
 	const detailedPrice = details?.price;
 	const price = detailedPrice || attrs.price || attrs.Price;
 	const imageObj = attrs.image || attrs.Image?.data?.attributes || {};
+	// Get available sizes from Strapi
+	const availableSizes = attrs.availableSizes || attrs.sizes || [];
 	   // Use main image or fallback
 	   const imageUrl = imageObj.url
-		   ? `${process.env.NEXT_PUBLIC_STRAPI_URL}${imageObj.url}`
+		   ? (imageObj.url.startsWith('http') ? imageObj.url : `${process.env.NEXT_PUBLIC_STRAPI_URL}${imageObj.url}`)
 		   : "/images/product1.webp";
 	const getPriceNumber = (price: any) =>
 		typeof price === "number"
@@ -85,6 +88,7 @@ export default function KurthiDetailPage() {
 			price: getPriceNumber(price),
 			image: imageUrl,
 			quantity,
+			size: selectedSize || undefined,
 		});
 		setShowToast(true);
 		setTimeout(() => setShowToast(false), 2000);
@@ -111,10 +115,32 @@ export default function KurthiDetailPage() {
 						  {detailedDescription}
 					  </p>
 				  )}
-				   <div className="text-2xl font-bold text-indigo-700 mb-6">
-					   ₹{price}
+			   <div className="text-2xl font-bold text-indigo-700 mb-6">
+				   ₹{price}
+			   </div>
+			   
+			   {/* Size Dropdown */}
+			   {availableSizes && availableSizes.length > 0 && (
+				   <div className="w-full mb-6">
+					   <label className="block text-sm font-semibold text-gray-700 mb-2">
+						   Select Size:
+					   </label>
+					   <select
+						   value={selectedSize}
+						   onChange={(e) => setSelectedSize(e.target.value)}
+						   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-pink-500 text-gray-700"
+					   >
+						   <option value="">Choose a size</option>
+						   {availableSizes.map((size: string) => (
+							   <option key={size} value={size}>
+								   {size}
+							   </option>
+						   ))}
+					   </select>
 				   </div>
-				   <div className="flex items-center gap-4 mb-6">
+			   )}
+			   
+			   <div className="flex items-center gap-4 mb-6">
 					   <button
 						   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
 						   className="px-3 py-1 bg-gray-200 rounded text-lg font-bold hover:bg-gray-300"

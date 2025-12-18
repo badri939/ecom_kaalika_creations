@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { FaShoppingCart, FaHome, FaShoppingBag } from "react-icons/fa";
+import { FaShoppingCart, FaHome, FaShoppingBag, FaWhatsapp } from "react-icons/fa";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,9 +22,21 @@ const geistMono = Geist_Mono({
 
 function FloatingActionButtons() {
   const { cart } = useCart();
+  const pathname = usePathname();
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   return (
     <div className="fixed bottom-4 right-4 flex flex-col gap-4 z-50">
+      {/* Home Button - Only show when not on home page */}
+      {pathname !== "/" && (
+        <Link href="/">
+          <button
+            className="bg-yellow-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-yellow-600 hover:scale-105 transform transition-transform duration-300"
+            aria-label="Go to Home"
+          >
+            <FaHome className="text-xl" />
+          </button>
+        </Link>
+      )}
       {/* View Cart Button with badge */}
       <Link href="/cart">
         <button
@@ -40,6 +52,30 @@ function FloatingActionButtons() {
         </button>
       </Link>
 
+      {/* WhatsApp Button */}
+      <a
+        href="https://wa.me/919964158588?text=Hi%2C%20I%27m%20interested%20in%20your%20products"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <button
+          className="bg-green-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-green-600 hover:scale-105 transform transition-transform duration-300"
+          aria-label="Chat on WhatsApp"
+        >
+          <FaWhatsapp className="text-2xl" />
+        </button>
+      </a>
+
+      {/* Contact Button */}
+      <Link href="/contact">
+        <button
+          className="bg-indigo-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-600 hover:scale-105 transform transition-transform duration-300"
+          aria-label="Contact Us"
+        >
+          📞
+        </button>
+      </Link>
+
       {/* Scroll to Top Button */}
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -48,26 +84,6 @@ function FloatingActionButtons() {
       >
         ⬆️
       </button>
-    </div>
-  );
-}
-
-function FloatingHomeButton() {
-  const pathname = usePathname();
-
-  // Do not render the button on the home page
-  if (pathname === "/") return null;
-
-  return (
-    <div className="fixed bottom-4 left-4 z-50">
-      <Link href="/">
-        <button
-          className="bg-yellow-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-yellow-600 hover:scale-105 transform transition-transform duration-300"
-          aria-label="Go to Home"
-        >
-          🏠
-        </button>
-      </Link>
     </div>
   );
 }
@@ -94,7 +110,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </nav>
             </header>
             <FloatingActionButtons />
-            <FloatingHomeButton />
             <main>{children}</main>
           </body>
         </html>

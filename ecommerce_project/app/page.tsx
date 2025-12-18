@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -20,15 +22,18 @@ export default function Hero() {
           <p className="text-base sm:text-sm md:text-lg text-center mt-2 drop-shadow-md">
             Discover the latest trends in fashion
           </p>
-          <Link href="/products" passHref>
-            <button className="mt-6 px-6 sm:px-4 py-3 sm:py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:scale-105 transform transition-transform duration-300 text-sm sm:text-xs md:text-base shadow-lg">
-              Shop Now
-            </button>
-          </Link>
+          <button 
+            onClick={() => {
+              document.getElementById('categories')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="mt-6 px-6 sm:px-4 py-3 sm:py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:scale-105 transform transition-transform duration-300 text-sm sm:text-xs md:text-base shadow-lg"
+          >
+            Explore Categories
+          </button>
         </div>
       </div>
 
-      <div className="mt-12 px-6 text-center">
+      <div id="categories" className="mt-12 px-6 text-center">
         <h2 className="text-2xl sm:text-xl md:text-3xl font-bold text-gray-800">
           Explore Our Categories
         </h2>
