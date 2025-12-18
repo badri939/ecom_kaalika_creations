@@ -14,10 +14,7 @@ export default function KurthiDetailPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [quantity, setQuantity] = useState(1);
 	const [selectedSize, setSelectedSize] = useState<string>("");
-<<<<<<< HEAD
-=======
 	const [availableSizes, setAvailableSizes] = useState<string[]>([]);
->>>>>>> 71f27e1 (Remove root package-lock.json and node_modules to fix Vercel deployment root)
 
 	useEffect(() => {
 	const [availableSizes, setAvailableSizes] = useState<string[]>([]);
@@ -115,11 +112,7 @@ export default function KurthiDetailPage() {
 			price: getPriceNumber(price),
 			image: imageUrl,
 			quantity,
-<<<<<<< HEAD
-			size: selectedSize || undefined,
-=======
-			...(selectedSize && { size: selectedSize }), // Only include size if selected
->>>>>>> 71f27e1 (Remove root package-lock.json and node_modules to fix Vercel deployment root)
+	...(selectedSize && { size: selectedSize }), // Only include size if selected
 		});
 		setShowToast(true);
 		setTimeout(() => setShowToast(false), 2000);
