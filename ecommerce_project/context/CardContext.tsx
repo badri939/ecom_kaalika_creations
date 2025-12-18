@@ -8,7 +8,7 @@ interface CartItem {
   price: number;
   image: string;
   quantity: number;
-  size?: string;
+  size?: string; // Optional size field for products with size variants
 }
 
 // Define context data type
@@ -16,9 +16,9 @@ interface CartContextType {
   cart: CartItem[];
   cartItems: CartItem[]; // New property to expose cart items
   addToCart: (item: CartItem) => void;
-  removeFromCart: (id: number) => void;
+  removeFromCart: (id: number, size?: string) => void;
   clearCart: () => void;
-  updateCartItemQuantity: (id: number, quantity: number) => void; // New function
+  updateCartItemQuantity: (id: number, quantity: number, size?: string) => void; // New function
 }
 
 // Create the context
@@ -50,27 +50,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setCart((prevCart) => {
-      // Find existing item with same id AND size
-      const existingItem = prevCart.find(
-        (cartItem) => cartItem.id === item.id && cartItem.size === item.size
+      // For items with sizes, treat each size as a separate cart item
+      const existingItem = prevCart.find((cartItem) => 
+        cartItem.id === item.id && cartItem.size === item.size
       );
       if (existingItem) {
         console.log("Item already in cart, updating quantity:", existingItem);
         return prevCart.map((cartItem) =>
           cartItem.id === item.id && cartItem.size === item.size
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
             : cartItem
         );
       } else {
         console.log("Adding new item to cart:", item);
-        return [...prevCart, { ...item, quantity: 1 }];
+        return [...prevCart, { ...item }];
       }
     });
   };
 
   // Function to remove an item from the cart
-  const removeFromCart = (id: number) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
+  const removeFromCart = (id: number, size?: string) => {
+    setCart((prevCart) => prevCart.filter((item) => {
+      // If size is provided, match both id and size; otherwise just match id
+      if (size !== undefined) {
+        return !(item.id === id && item.size === size);
+      }
+      return item.id !== id;
+    }));
   };
 
   // Function to clear the entire cart
@@ -79,14 +85,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Function to update the quantity of an item in the cart
-  const updateCartItemQuantity = (id: number, quantity: number) => {
+  const updateCartItemQuantity = (id: number, quantity: number, size?: string) => {
     setCart((prevCart) => {
       if (quantity <= 0) {
-        return prevCart.filter((item) => item.id !== id); // Remove item if quantity is 0
+        // Remove item if quantity is 0
+        return prevCart.filter((item) => {
+          if (size !== undefined) {
+            return !(item.id === id && item.size === size);
+          }
+          return item.id !== id;
+        });
       }
-      return prevCart.map((item) =>
-        item.id === id ? { ...item, quantity } : item
-      );
+      return prevCart.map((item) => {
+        // If size is provided, match both id and size; otherwise just match id
+        const matches = size !== undefined 
+          ? (item.id === id && item.size === size)
+          : (item.id === id);
+        return matches ? { ...item, quantity } : item;
+      });
     });
   };
 

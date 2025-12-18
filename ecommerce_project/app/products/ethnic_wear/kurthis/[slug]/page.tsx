@@ -14,8 +14,13 @@ export default function KurthiDetailPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [quantity, setQuantity] = useState(1);
 	const [selectedSize, setSelectedSize] = useState<string>("");
+<<<<<<< HEAD
+=======
+	const [availableSizes, setAvailableSizes] = useState<string[]>([]);
+>>>>>>> 71f27e1 (Remove root package-lock.json and node_modules to fix Vercel deployment root)
 
 	useEffect(() => {
+	const [availableSizes, setAvailableSizes] = useState<string[]>([]);
 		if (!slug) return;
 		   fetch(
 			   `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/products?populate=*&filters[slug][$eq]=${encodeURIComponent(
@@ -25,7 +30,23 @@ export default function KurthiDetailPage() {
 			.then((res) => res.json())
 			.then((data) => {
 				if (data.data && data.data.length > 0) {
-					setProduct(data.data[0]);
+					const productData = data.data[0];
+					setProduct(productData);
+					
+					// Parse available sizes from the multi-select dropdown
+					const attrs = productData?.attributes || productData;
+					const sizes = attrs.sizes || attrs.Sizes || [];
+					
+					// Filter out empty values and set available sizes
+					const validSizes = Array.isArray(sizes) 
+						? sizes.filter((size: string) => size && size.trim() !== '')
+						: [];
+					setAvailableSizes(validSizes);
+					
+					// Auto-select first size if only one is available
+					if (validSizes.length === 1) {
+						setSelectedSize(validSizes[0]);
+					}
 				} else {
 					setProduct(null);
 				}
@@ -82,13 +103,23 @@ export default function KurthiDetailPage() {
 			: Number((price || "").replace(/[^\d]/g, ""));
 
 	const handleAddToCart = () => {
+		// Validate size selection if sizes are available
+		if (availableSizes.length > 0 && !selectedSize) {
+			alert("Please select a size");
+			return;
+		}
+		
 		addToCart({
 			id: product.id,
 			name,
 			price: getPriceNumber(price),
 			image: imageUrl,
 			quantity,
+<<<<<<< HEAD
 			size: selectedSize || undefined,
+=======
+			...(selectedSize && { size: selectedSize }), // Only include size if selected
+>>>>>>> 71f27e1 (Remove root package-lock.json and node_modules to fix Vercel deployment root)
 		});
 		setShowToast(true);
 		setTimeout(() => setShowToast(false), 2000);
@@ -138,9 +169,42 @@ export default function KurthiDetailPage() {
 						   ))}
 					   </select>
 				   </div>
+<<<<<<< HEAD
 			   )}
 			   
 			   <div className="flex items-center gap-4 mb-6">
+=======
+				   
+				   {/* Size Selector - only show if sizes are available */}
+				   {availableSizes.length > 0 && (
+					   <div className="w-full mb-6">
+						   <label className="block text-sm font-semibold text-gray-700 mb-2">
+							   Select Size:
+						   </label>
+						   <select
+							   value={selectedSize}
+							   onChange={(e) => setSelectedSize(e.target.value)}
+							   className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
+								   !selectedSize ? 'border-red-300' : 'border-gray-300'
+							   }`}
+						   >
+							   <option value="">Choose a size</option>
+							   {availableSizes.map((size) => (
+								   <option key={size} value={size}>
+									   {size}
+								   </option>
+							   ))}
+						   </select>
+						   {!selectedSize && availableSizes.length > 0 && (
+							   <p className="text-xs text-red-500 mt-1">
+								   * Please select a size before adding to cart
+							   </p>
+						   )}
+					   </div>
+				   )}
+				   
+				   <div className="flex items-center gap-4 mb-6">
+>>>>>>> 71f27e1 (Remove root package-lock.json and node_modules to fix Vercel deployment root)
 					   <button
 						   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
 						   className="px-3 py-1 bg-gray-200 rounded text-lg font-bold hover:bg-gray-300"

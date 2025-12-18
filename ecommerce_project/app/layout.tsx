@@ -97,6 +97,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <header className="flex justify-between items-center p-4 bg-yellow-300">
               <h1 className="text-2xl font-bold">E-Commerce</h1>
               <nav className="flex items-center gap-4 relative z-50">
+                <Link href="/" className="text-gray-800 hover:text-gray-600 font-medium">
+                  Home
+                </Link>
+                <Link href="/products" className="text-gray-800 hover:text-gray-600 font-medium">
+                  Products
+                </Link>
+                <Link href="/about" className="text-gray-800 hover:text-gray-600 font-medium">
+                  About
+                </Link>
+
                 <div className="relative group" tabIndex={0}>
                   <button className="bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-700 focus:outline-none">
                     Account

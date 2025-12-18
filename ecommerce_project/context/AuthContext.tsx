@@ -62,8 +62,13 @@ export const withAuth = (Component: React.ComponentType) => {
       }
     }, [loading, user, router]);
 
-    if (loading || !user) {
-      return <p>Loading...</p>; // Show a loading state while checking auth or navigating
+    if (loading) {
+      return <p>Loading...</p>; // Show a loading state while checking auth
+    }
+
+    if (!user) {
+      // If not authenticated, show a clear redirecting message while useEffect navigates to /login
+      return <p>Redirecting to login...</p>;
     }
 
     return <Component {...props} />;
