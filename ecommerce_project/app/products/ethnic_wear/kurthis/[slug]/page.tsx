@@ -17,7 +17,6 @@ export default function KurthiDetailPage() {
 	const [availableSizes, setAvailableSizes] = useState<string[]>([]);
 
 	useEffect(() => {
-	const [availableSizes, setAvailableSizes] = useState<string[]>([]);
 		if (!slug) return;
 		   fetch(
 			   `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/products?populate=*&filters[slug][$eq]=${encodeURIComponent(
@@ -112,7 +111,7 @@ export default function KurthiDetailPage() {
 			price: getPriceNumber(price),
 			image: imageUrl,
 			quantity,
-	...(selectedSize && { size: selectedSize }), // Only include size if selected
+			...(selectedSize && { size: selectedSize }), // Only include size if selected
 		});
 		setShowToast(true);
 		setTimeout(() => setShowToast(false), 2000);
