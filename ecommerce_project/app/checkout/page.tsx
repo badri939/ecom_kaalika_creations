@@ -133,7 +133,7 @@ export default withAuth(function CheckoutPage() {
         } else {
           alert("Order placed successfully.");
           clearCart();
-          router.push("/order/success");
+          router.push("/order/thankyou");
         }
         return;
       }
@@ -189,7 +189,7 @@ export default withAuth(function CheckoutPage() {
             }
             clearCart();
             if (verifyResult?.redirectUrl) router.push(verifyResult.redirectUrl);
-            else router.push(`/order/success`);
+            else router.push(`/order/thankyou`);
           } catch (err: any) {
             console.error("Payment verification failed:", err);
             alert(err?.message || "Payment verification failed. Please contact support.");
