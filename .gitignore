@@ -1,5 +1,8 @@
 # Ignore SendGrid API key file
 sendgrid_key.txt
+# Ignore Strapi API token files
+strapi_api_token.txt
+latest_strapi_api_token_for express_orders.txt
 node_modules/
 .env
 serviceAccountKey.json
