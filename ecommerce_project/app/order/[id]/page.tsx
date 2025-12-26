@@ -6,7 +6,7 @@ import { use } from "react";
 
 interface Order {
   id: string;
-  items: { name: string; quantity: number; price: number }[];
+  items: { name: string; quantity: number; price: number; size?: string }[];
   total: number;
   date: string;
   estimatedDelivery: string;
@@ -67,7 +67,8 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
         <ul className="list-disc pl-6">
           {order.items.map((item, index) => (
             <li key={index} className="text-lg text-gray-700">
-              {item.name} - Quantity: {item.quantity} - ₹{item.price * item.quantity}
+              {item.name}
+              {item.size && <span> (Size: {item.size})</span>} - Quantity: {item.quantity} - ₹{item.price * item.quantity}
             </li>
           ))}
         </ul>
