@@ -26,7 +26,7 @@ export default function EthnicWearPage() {
             </p>
           </div>
         </Link>
-        <Link href="/products/ethnic_wear/lehenga" passHref>
+        <Link href="/products/ethnic_wear/lehengas" passHref>
           <div className="cursor-pointer bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-4 flex flex-col items-center">
             <img
               src="/images/Lehengas.jpg"
